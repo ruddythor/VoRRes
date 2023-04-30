@@ -1,63 +1,82 @@
-from transformers import TFWav2Vec2ForCTC, Wav2Vec2Processor
-import soundfile as sf
-import tensorflow as tf
+import pyaudio
 import numpy as np
+import soundfile as sf
+import requests
+import json
+import pyttsx3
+from transformers import TFWav2Vec2ForCTC, Wav2Vec2Processor
+from scipy.signal import resample_poly
 
+# Initialize ASR model
+model = TFWav2Vec2ForCTC.from_pretrained("openai/whisper-tiny")
+processor = Wav2Vec2Processor.from_pretrained("openai/whisper-tiny")
 
-import speech_recognition as sr
-
-def recognize_speech_from_mic(recognizer, microphone):
-    with microphone as source:
-        print("Listening...")
-        recognizer.adjust_for_ambient_noise(source)
-        audio = recognizer.listen(source)
-
-    try:
-        print("Recognizing...")
-        speech = recognizer.recognize_google(audio)
-        return speech
-
-    except sr.RequestError:
-        print("API unavailable")
-    except sr.UnknownValueError:
-        print("Unable to recognize speech")
-
-
-
-def init():
-
-    recognizer = sr.Recognizer()
-    microphone = sr.Microphone()
-    print(microphone)
-
-
-    speech = recognize_speech_from_mic(recognizer, microphone)
-
-    print(f"You said: {speech}")
-    # Load the model and processor
-    model = TFWav2Vec2ForCTC.from_pretrained("openai/whisper-tiny")
-    processor = Wav2Vec2Processor.from_pretrained("openai/whisper-tiny")
-
-    # # Read the audio file
-    # audio, sample_rate = sf.read("path/to/your/audio/file.wav")
-
-    # # Resample the audio if the sample rate is not 16 kHz
-    # if sample_rate != 16000:
-    #     from scipy.signal import resample_poly
-    #     audio = resample_poly(audio, 16000, sample_rate)
-
-    # # Tokenize the audio
-    input_values = processor(speech, return_tensors="tf", padding="longest").input_values
-
-    # # Perform speech recognition
+# Function to transcribe audio using the ASR model
+def transcribe_audio(audio):
+    audio = resample_poly(audio, 16000, 44100)
+    input_values = processor(audio, return_tensors="tf", padding="longest").input_values
     logits = model(input_values).logits
-
-    # # Decode the logits to text
-    predicted_ids = tf.argmax(logits, axis=-1).numpy()
+    predicted_ids = np.argmax(logits, axis=-1)
     transcription = processor.batch_decode(predicted_ids)[0]
+    return transcription
 
-    # # Print the transcription
-    print(transcription)
+# Function to send text to ChatGPT and get the response
+def chat_with_gpt(text):
+    api_key = "your_openai_api_key"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}",
+    }
+    data = json.dumps({
+        "model": "text-davinci-002",
+        "prompt": text,
+        "temperature": 0.7,
+        "max_tokens": 100,
+    })
+    response = requests.post("https://api.openai.com/v1/engines/davinci-codex/completions", headers=headers, data=data)
+    response_text = response.json()["choices"][0]["text"].strip()
+    return response_text
+
+# Function to convert text to speech
+def text_to_speech(text):
+    engine = pyttsx3.init()
+    engine.say(text)
+    engine.runAndWait()
+
+# Record audio from the microphone
+def record_audio():
+    CHUNK = 1024
+    FORMAT = pyaudio.paInt16
+    CHANNELS = 1
+    RATE = 44100
+    RECORD_SECONDS = 5
+    p = pyaudio.PyAudio()
+    stream = p.open(format=FORMAT,
+                    channels=CHANNELS,
+                    rate=RATE,
+                    input=True,
+                    frames_per_buffer=CHUNK)
+    print("Recording...")
+    frames = []
+    for _ in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
+        data = stream.read(CHUNK)
+        frames.append(np.frombuffer(data, dtype=np.int16))
+    print("Finished recording.")
+    stream.stop_stream()
+    stream.close()
+    p.terminate()
+    return np.hstack(frames)
+
+# Main function
+def main():
+    while True:
+        audio = record_audio()
+        transcription = transcribe_audio(audio)
+        print("You said:", transcription)
+        response_text = chat_with_gpt(transcription)
+        print("ChatGPT says:", response_text)
+        text_to_speech(response_text)
 
 if __name__ == "__main__":
-    init()
+    main()
+
