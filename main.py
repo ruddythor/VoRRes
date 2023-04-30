@@ -1,7 +1,7 @@
-# from transformers import TFWav2Vec2ForCTC, Wav2Vec2Processor
-# import soundfile as sf
-# import tensorflow as tf
-# import numpy as np
+from transformers import TFWav2Vec2ForCTC, Wav2Vec2Processor
+import soundfile as sf
+import tensorflow as tf
+import numpy as np
 
 
 import speech_recognition as sr
