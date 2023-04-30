@@ -3,7 +3,37 @@ import soundfile as sf
 import tensorflow as tf
 import numpy as np
 
+
+import speech_recognition as sr
+
+def recognize_speech_from_mic(recognizer, microphone):
+    with microphone as source:
+        print("Listening...")
+        recognizer.adjust_for_ambient_noise(source)
+        audio = recognizer.listen(source)
+
+    try:
+        print("Recognizing...")
+        speech = recognizer.recognize_google(audio)
+        return speech
+
+    except sr.RequestError:
+        print("API unavailable")
+    except sr.UnknownValueError:
+        print("Unable to recognize speech")
+
+
+
 def init():
+
+    recognizer = sr.Recognizer()
+    microphone = sr.Microphone()
+    print(microphone)
+
+
+    speech = recognize_speech_from_mic(recognizer, microphone)
+
+    print(f"You said: {speech}")
     # Load the model and processor
     model = TFWav2Vec2ForCTC.from_pretrained("openai/whisper-tiny")
     processor = Wav2Vec2Processor.from_pretrained("openai/whisper-tiny")
