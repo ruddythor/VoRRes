@@ -12,7 +12,9 @@ Workflow for this project is to develop code on your windows machine, push to gi
 
 For Raspberry Pi:
 * install VS Code 2
-* sudo apt install python3-pyaudio
+* `sudo apt install python3-pyaudio`
+* `sudo apt install portaudio19-dev`
+* `sudo apt-get install portaudio19-dev python-pyaudio python3-pyaudio`
 * set up Venv, install requirements: 
     * on windows: `mkdir venv && python -m venv venv`
     * `pip install -r requirements.txt`
