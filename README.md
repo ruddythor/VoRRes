@@ -11,9 +11,7 @@ For Raspberry Pi:
 * install VS Code 2
 * set up Venv, install requirements: 
     * on windows: `mkdir venv && python -m venv venv`
-    * pip install tensorflow
-    * pip install transformers
-    * pip install soundfile scipy
+    * `pip install -r requirements.txt`
 
 # Convert to Tensorflow Lite
 I think this is something that will only have to be done at the repo level, and we should commit the resulting .tflite file/model to the repo.
