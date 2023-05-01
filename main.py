@@ -44,33 +44,49 @@ def text_to_speech(text):
     engine.runAndWait()
 
 # Record audio from the microphone
-def record_audio():
+import pyaudio
+import wave
+
+def record_audio_to_file(filename, record_seconds=5):
     CHUNK = 1024
     FORMAT = pyaudio.paInt16
     CHANNELS = 1
     RATE = 44100
-    RECORD_SECONDS = 5
+
     p = pyaudio.PyAudio()
+
     stream = p.open(format=FORMAT,
                     channels=CHANNELS,
                     rate=RATE,
                     input=True,
                     frames_per_buffer=CHUNK)
+
     print("Recording...")
+
     frames = []
-    for _ in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
+
+    for _ in range(0, int(RATE / CHUNK * record_seconds)):
         data = stream.read(CHUNK)
-        frames.append(np.frombuffer(data, dtype=np.int16))
+        frames.append(data)
+
     print("Finished recording.")
+
     stream.stop_stream()
     stream.close()
     p.terminate()
-    return np.hstack(frames)
+
+    wf = wave.open(filename, 'wb')
+    wf.setnchannels(CHANNELS)
+    wf.setsampwidth(p.get_sample_size(FORMAT))
+    wf.setframerate(RATE)
+    wf.writeframes(b''.join(frames))
+    wf.close()
 
 # Main function
 def main():
     while True:
-        audio = record_audio()
+        audio = record_audio_to_file("output.wav", record_seconds=5)
+
         transcription = transcribe_audio(audio)
         print("You said:", transcription)
         response_text = chat_with_gpt(transcription)
