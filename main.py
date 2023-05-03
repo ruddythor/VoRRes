@@ -1,7 +1,8 @@
 import sounddevice as sd
 import numpy as np
 from scipy.io.wavfile import write, read
-from transformers import TFWav2Vec2ForCTC, Wav2Vec2Processor, T5Tokenizer, TFT5ForConditionalGeneration, AutoTokenizer, AutoModelForSeq2SeqLM, AutoModelForCausalLM
+from transformers import TFWav2Vec2ForCTC, Wav2Vec2Processor, AutoTokenizer, AutoModelForSeq2SeqLM
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 import tensorflow as tf
 import torch
 
@@ -36,9 +37,9 @@ def transcribe_audio(filename):
 
 def generate_response(prompt):
 
-    tokenizer = AutoTokenizer.from_pretrained("microsoft/DialoGPT-medium")
+    tokenizer = AutoTokenizer.from_pretrained("facebook/blenderbot-90M")
 
-    model = AutoModelForCausalLM.from_pretrained("microsoft/DialoGPT-medium")
+    model = AutoModelForSeq2SeqLM.from_pretrained("facebook/blenderbot-90M")
     # inputs = tokenizer.encode(prompt, return_tensors="tf", max_length=512)
     # outputs = model.generate(inputs, max_length=100, num_return_sequences=1, no_repeat_ngram_size=2)
     # response = tokenizer.decode(outputs[0], skip_special_tokens=True)
@@ -53,7 +54,7 @@ def generate_response(prompt):
         chat_history_ids = model.generate(bot_input_ids, max_length=1000, pad_token_id=tokenizer.eos_token_id)
 
         # pretty print last ouput tokens from bot
-        print("DialoGPT: {}".format(tokenizer.decode(chat_history_ids[:, bot_input_ids.shape[-1]:][0], skip_special_tokens=True)))
+        print("Hank: {}".format(tokenizer.decode(chat_history_ids[:, bot_input_ids.shape[-1]:][0], skip_special_tokens=True)))
 
 
 
