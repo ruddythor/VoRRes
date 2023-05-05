@@ -1,10 +1,15 @@
 import sounddevice as sd
 import numpy as np
 from scipy.io.wavfile import write, read
-from transformers import TFWav2Vec2ForCTC, Wav2Vec2Processor, AutoTokenizer, AutoModelForSeq2SeqLM
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+from transformers import TFWav2Vec2ForCTC, Wav2Vec2Processor, SpeechT5HifiGan
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, SpeechT5Processor
 import tensorflow as tf
 import torch
+from transformers import GPT2Tokenizer, GPT2LMHeadModel
+import openai
+from transformers import AutoProcessor, SpeechT5ForTextToSpeech
+import soundfile as sf
+from datasets import load_dataset
 
 
 RECORD_SECONDS = 5
@@ -35,28 +40,37 @@ def transcribe_audio(filename):
     transcription = processor.decode(predicted_ids[0].numpy())
     return transcription
 
+def speak_response(response):
+    processor = SpeechT5Processor.from_pretrained("microsoft/speecht5_tts")
+    model = SpeechT5ForTextToSpeech.from_pretrained("microsoft/speecht5_tts")
+    vocoder = SpeechT5HifiGan.from_pretrained("microsoft/speecht5_hifigan")
+    inputs = processor(text=response, return_tensors="pt")
+
+    # load xvector containing speaker's voice characteristics from a dataset
+    embeddings_dataset = load_dataset("Matthijs/cmu-arctic-xvectors", split="validation")
+    speaker_embeddings = torch.tensor(embeddings_dataset[7306]["xvector"]).unsqueeze(0)
+
+    speech = model.generate_speech(inputs["input_ids"], speaker_embeddings, vocoder=vocoder)
+
+    sf.write("speech.wav", speech.numpy(), samplerate=16000)
+
+
+
 def generate_response(prompt):
 
-    tokenizer = AutoTokenizer.from_pretrained("facebook/blenderbot-90M")
+    openai.organization = 'fake-org'
+    # Load your API key from an environment variable or secret management service
+    openai.api_key = 'fake-key'
+    openai.Model.list()
+    
+    response = openai.Completion.create(
+        engine="text-davinci-003", #"gpt-3.5-turbo-0301", #engine="gpt-4" # This is assuming that GPT-4 might be named 'text-davinci-004'
+        prompt=prompt,
+        max_tokens=100
+    )
 
-    model = AutoModelForSeq2SeqLM.from_pretrained("facebook/blenderbot-90M")
-    # inputs = tokenizer.encode(prompt, return_tensors="tf", max_length=512)
-    # outputs = model.generate(inputs, max_length=100, num_return_sequences=1, no_repeat_ngram_size=2)
-    # response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    for step in range(1):
-        # encode the new user input, add the eos_token and return a tensor in Pytorch
-        new_user_input_ids = tokenizer.encode(prompt + tokenizer.eos_token, return_tensors='pt')
-
-        # append the new user input tokens to the chat history
-        bot_input_ids = torch.cat([chat_history_ids, new_user_input_ids], dim=-1) if step > 0 else new_user_input_ids
-
-        # generated a response while limiting the total chat history to 1000 tokens, 
-        chat_history_ids = model.generate(bot_input_ids, max_length=1000, pad_token_id=tokenizer.eos_token_id)
-
-        # pretty print last ouput tokens from bot
-        print("Hank: {}".format(tokenizer.decode(chat_history_ids[:, bot_input_ids.shape[-1]:][0], skip_special_tokens=True)))
-
-
+    res = response.choices[0].text.strip()
+    return res
 
     # return response
 
@@ -66,8 +80,9 @@ def main():
     # play_audio_from_file("recorded_audio.wav")
     transcription = transcribe_audio("recorded_audio.wav")
     print("Transcription:", transcription)
-    generate_response(transcription)
-    # print("Generated response:", response)
+    response = generate_response(transcription)
+    print("Hank says:", response)
+    speak_response(response)
 
 if __name__ == "__main__":
     main()
