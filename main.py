@@ -10,6 +10,8 @@ import openai
 from transformers import AutoProcessor, SpeechT5ForTextToSpeech
 import soundfile as sf
 from datasets import load_dataset
+from transformers import TFWav2Vec2ForCTC, Wav2Vec2Processor, GPT2Tokenizer, TFGPT2LMHeadModel
+import tensorflow as tf
 
 
 RECORD_SECONDS = 5
@@ -54,25 +56,20 @@ def speak_response(response):
 
     sf.write("speech.wav", speech.numpy(), samplerate=16000)
 
-
-
+# Generate a response using GPT-2
 def generate_response(prompt):
+    # Load pre-trained model and tokenizer
+    tokenizer = GPT2Tokenizer.from_pretrained("gpt2-large")
+    model = TFGPT2LMHeadModel.from_pretrained("gpt2-large")
 
-    openai.organization = 'fake-org'
-    # Load your API key from an environment variable or secret management service
-    openai.api_key = 'fake-key'
-    openai.Model.list()
+    # Encode prompt
+    inputs = tokenizer.encode(prompt, return_tensors="tf")
     
-    response = openai.Completion.create(
-        engine="text-davinci-003", #"gpt-3.5-turbo-0301", #engine="gpt-4" # This is assuming that GPT-4 might be named 'text-davinci-004'
-        prompt=prompt,
-        max_tokens=100
-    )
-
-    res = response.choices[0].text.strip()
-    return res
-
-    # return response
+    # Generate text
+    outputs = model.generate(inputs, max_length=100, num_return_sequences=1, no_repeat_ngram_size=2)
+    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    
+    return response
 
 def main():
     audio = record_audio()
