@@ -11,7 +11,30 @@ from transformers import GPT2Tokenizer, TFGPT2LMHeadModel
 
 RECORD_SECONDS = 5
 SAMPLE_RATE = 16000
+def record_audio():
+    print("Recording...")
+    audio = sd.rec(int(RECORD_SECONDS * SAMPLE_RATE), samplerate=SAMPLE_RATE, channels=1)
+    sd.wait()
+    return audio
 
+def save_audio_to_file(filename, audio):
+    write(filename, SAMPLE_RATE, audio)
+
+def play_audio_from_file(filename):
+    print("Playing...")
+    sample_rate, audio = read(filename)
+    sd.play(audio, sample_rate)
+    sd.wait()
+
+def transcribe_audio(filename):
+    processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
+    model = TFWav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-base-960h")
+    sample_rate, audio = read(filename)
+    input_values = processor(audio, sampling_rate=sample_rate, return_tensors="tf").input_values
+    logits = model(input_values).logits
+    predicted_ids = tf.argmax(logits, axis=-1)
+    transcription = processor.decode(predicted_ids[0].numpy())
+    return transcription
 
 def speak_response(response):
     processor = SpeechT5Processor.from_pretrained("microsoft/speecht5_tts")
