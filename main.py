@@ -1,9 +1,11 @@
+import sounddevice as sd
 import numpy as np
 from transformers import SpeechT5HifiGan
 import torch
-from transformers import GPT2Tokenizer, SpeechT5ForTextToSpeech, SpeechT5Processor 
+from transformers import GPT2Tokenizer, SpeechT5ForTextToSpeech, SpeechT5Processor, Wav2Vec2Processor, TFWav2Vec2ForCTC
 import openai
-
+from scipy.io.wavfile import write, read
+import tensorflow as tf
 import soundfile as sf
 from datasets import load_dataset
 from transformers import GPT2Tokenizer, TFGPT2LMHeadModel
@@ -66,11 +68,12 @@ def generate_response(prompt):
     return response
 
 def main():
-    # audio = record_audio()
-    # save_audio_to_file("recorded_audio.wav", audio)
-    # play_audio_from_file("recorded_audio.wav")
+    audio = record_audio()
+    save_audio_to_file("recorded_audio.wav", audio)
+    #play_audio_from_file("recorded_audio.wav")
     #transcription = "What is the future of space travel?"
-    transcription = "How can a ship fly using antigravity?"
+    #transcription = "How can a ship fly using antigravity?"
+    transcription = transcribe_audio("recorded_audio.wav")
     print("Transcription:", transcription)
     response = generate_response(transcription)
     print("Hank says:", response)
