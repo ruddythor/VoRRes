@@ -38,7 +38,7 @@ def transcribe_audio(filename):
     transcription = processor.decode(predicted_ids[0].numpy())
     return transcription
 
-def speak_response(response):
+def speak_response(response, filename):
     processor = SpeechT5Processor.from_pretrained("microsoft/speecht5_tts")
     model = SpeechT5ForTextToSpeech.from_pretrained("microsoft/speecht5_tts")
     vocoder = SpeechT5HifiGan.from_pretrained("microsoft/speecht5_hifigan")
@@ -50,7 +50,7 @@ def speak_response(response):
 
     speech = model.generate_speech(inputs["input_ids"], speaker_embeddings, vocoder=vocoder)
 
-    sf.write("speech.wav", speech.numpy(), samplerate=16000)
+    sf.write(filename, speech.numpy(), samplerate=16000)
 
 # Generate a response using GPT-2
 def generate_response(prompt):
@@ -68,16 +68,32 @@ def generate_response(prompt):
     return response
 
 def main():
+    speak_response("I have finished booting. Ready to accept instructions.", "boot.wav")
+    speak_response("Thinking.", "thinking.wav")
+    data, samplerate = sf.read("boot.wav")
+    sd.play(data, samplerate)
+    sd.wait()
     audio = record_audio()
     save_audio_to_file("recorded_audio.wav", audio)
-    #play_audio_from_file("recorded_audio.wav")
+    
+    thinking, samplerate = sf.read("thinking.wav")
+    sd.play(thinking, samplerate)
+    sd.wait()
+    #play_audio_from_file("recorded_audio.wav")a
     #transcription = "What is the future of space travel?"
     #transcription = "How can a ship fly using antigravity?"
     transcription = transcribe_audio("recorded_audio.wav")
     print("Transcription:", transcription)
+    
+    sd.play(thinking, samplerate)
+    sd.wait()
     response = generate_response(transcription)
     print("Hank says:", response)
-    speak_response(response)
+    speak_response(response, "speech.wav")
+
+    respond, samplerate = sf.read("speech.wav")
+    sd.play(respond, samplerate)
+    sd.wait()
 
 if __name__ == "__main__":
     main()
