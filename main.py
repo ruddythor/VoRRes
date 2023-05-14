@@ -55,8 +55,8 @@ def speak_response(response, filename):
 # Generate a response using GPT-2
 def generate_response(prompt):
     # Load pre-trained model and tokenizer
-    tokenizer = GPT2Tokenizer.from_pretrained("gpt2-large")
-    model = TFGPT2LMHeadModel.from_pretrained("gpt2-large")
+    tokenizer = GPT2Tokenizer.from_pretrained("distilgpt2")
+    model = TFGPT2LMHeadModel.from_pretrained("distilgpt2")
 
     # Encode prompt
     inputs = tokenizer.encode(prompt, return_tensors="tf")
