@@ -10,6 +10,7 @@ import soundfile as sf
 from datasets import load_dataset
 from transformers import GPT2Tokenizer, TFGPT2LMHeadModel
 import argparse
+import os
 
 RECORD_SECONDS = 5
 SAMPLE_RATE = 16000
@@ -51,6 +52,28 @@ def speak_response(response, filename):
     speech = model.generate_speech(inputs["input_ids"], speaker_embeddings, vocoder=vocoder)
 
     sf.write(filename, speech.numpy(), samplerate=16000)
+
+def generate_response_online(prompt):
+    openai.api_key = os.getenv("OPENAI_KEY")
+
+    def get_response(prompt):
+        response = openai.Completion.create(
+                engine="text-davinci-002",
+                prompt=prompt,
+                max_tokens=150,
+                n=1,
+                stop=None,
+                temperature=0.5,
+                )
+
+        message = response.choices[0].text.strip()
+        return message
+
+
+    response = get_response(prompt)
+    return response
+
+
 
 # Generate a response using GPT-2
 def generate_response(prompt):
@@ -105,6 +128,33 @@ def main():
 
         print("offline mode enabled")
     else:
+
+        print("online mode enabled")
+        data, samplerate = sf.read("boot.wav")
+        sd.play(data, samplerate)
+        sd.wait()
+        audio = record_audio()
+        save_audio_to_file("recorded_audio.wav", audio)
+    
+        thinking, samplerate = sf.read("thinking.wav")
+        sd.play(thinking, samplerate)
+        sd.wait()
+        #play_audio_from_file("recorded_audio.wav")a
+        #transcription = "What is the future of space travel?"
+        #transcription = "How can a ship fly using antigravity?"
+        transcription = transcribe_audio("recorded_audio.wav")
+        print("Transcription:", transcription)
+        
+        sd.play(thinking, samplerate)
+        sd.wait()
+        response = generate_response_online(transcription)
+        print("Hank says:", response)
+        speak_response(response, "speech.wav")
+
+        respond, samplerate = sf.read("speech.wav")
+        sd.play(respond, samplerate)
+        sd.wait()
+
         print("Online mode enabled")
 
 if __name__ == "__main__":
