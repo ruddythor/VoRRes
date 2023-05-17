@@ -9,7 +9,7 @@ import tensorflow as tf
 import soundfile as sf
 from datasets import load_dataset
 from transformers import GPT2Tokenizer, TFGPT2LMHeadModel
-
+import argparse
 
 RECORD_SECONDS = 5
 SAMPLE_RATE = 16000
@@ -68,32 +68,44 @@ def generate_response(prompt):
     return response
 
 def main():
-    speak_response("I have finished booting. Ready to accept instructions.", "boot.wav")
-    speak_response("Thinking.", "thinking.wav")
-    data, samplerate = sf.read("boot.wav")
-    sd.play(data, samplerate)
-    sd.wait()
-    audio = record_audio()
-    save_audio_to_file("recorded_audio.wav", audio)
-    
-    thinking, samplerate = sf.read("thinking.wav")
-    sd.play(thinking, samplerate)
-    sd.wait()
-    #play_audio_from_file("recorded_audio.wav")a
-    #transcription = "What is the future of space travel?"
-    #transcription = "How can a ship fly using antigravity?"
-    transcription = transcribe_audio("recorded_audio.wav")
-    print("Transcription:", transcription)
-    
-    sd.play(thinking, samplerate)
-    sd.wait()
-    response = generate_response(transcription)
-    print("Hank says:", response)
-    speak_response(response, "speech.wav")
+    #speak_response("I have finished booting. Ready to accept instructions.", "boot.wav")
+    #speak_response("Thinking.", "thinking.wav")
 
-    respond, samplerate = sf.read("speech.wav")
-    sd.play(respond, samplerate)
-    sd.wait()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--offline', action='store_true')
+    args = parser.parse_args()
+
+    if args.offline:
+
+        print("offline mode enabled")
+        data, samplerate = sf.read("boot.wav")
+        sd.play(data, samplerate)
+        sd.wait()
+        audio = record_audio()
+        save_audio_to_file("recorded_audio.wav", audio)
+    
+        thinking, samplerate = sf.read("thinking.wav")
+        sd.play(thinking, samplerate)
+        sd.wait()
+        #play_audio_from_file("recorded_audio.wav")a
+        #transcription = "What is the future of space travel?"
+        #transcription = "How can a ship fly using antigravity?"
+        transcription = transcribe_audio("recorded_audio.wav")
+        print("Transcription:", transcription)
+        
+        sd.play(thinking, samplerate)
+        sd.wait()
+        response = generate_response(transcription)
+        print("Hank says:", response)
+        speak_response(response, "speech.wav")
+
+        respond, samplerate = sf.read("speech.wav")
+        sd.play(respond, samplerate)
+        sd.wait()
+
+        print("offline mode enabled")
+    else:
+        print("Online mode enabled")
 
 if __name__ == "__main__":
     main()
